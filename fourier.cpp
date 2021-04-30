@@ -62,7 +62,7 @@ std::vector<cd> DFT(std::vector<double> signal)
         // std::cout<<imags<<std::endl;
         cd sum;
         sum = (reals, imags);
-        ftArray[k] = sum;
+        ftArray.push_back(sum);
     }
     return ftArray;
 }
@@ -77,10 +77,9 @@ int main()
         std::cout << "Unable to open the file";
         exit(1);
     }
-    double dat;
-    while (inFile >> dat)
+    double data;
+    while (inFile >> data)
     {
-        double data = dat;
         signal.push_back(data);
     }
     std::vector<cd> vfft;
