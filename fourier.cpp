@@ -6,45 +6,50 @@
 #include <complex>
 #include <valarray>
 #include <iomanip>
+#include <pybind11/pybind11.h>
+#include<pybind11/complex.h>
+#include <pybind11/stl.h>
 
 double pi = 3.14159265359;
 const double PI = 3.141592653589793238460;
 using cd = std::complex<long double>;
 
-void FFT(std::vector<cd> & fftArray)
+
+
+std::vector<cd> FFT(std::vector<cd> &fftArray)
 {
-    const size_t N = fftArray.size();
-    int m = 0;
-    if (N <= 1)
-        return;
-    std::vector<cd> even;
-    std::vector<cd> odd;
+    int N = fftArray.size();
+    if (N == 1)
+        return fftArray;
+    std::vector<cd> even(N/2,0);
+    std::vector<cd> odd(N/2,0);
     for (int i = 0; i != N / 2; i++)
     {
-        cd x = fftArray[2 * i];
-        even.push_back(x);
-        x = fftArray[2 * i + 1];
-        odd.push_back(x);
-
+        even[i] = fftArray[2 * i];
+        // even.push_back(x);
+        odd[i] = fftArray[2 * i + 1];
+        // odd.push_back(x);
     }
-
 
     // conquer
-    FFT(even);
-    FFT(odd);
+    std::vector<cd>Feven(N/2,0);
+    Feven = FFT(even);
+    std::vector<cd>Fodd(N/2,0);
+    Fodd = FFT(odd);
 
     // combine
+    std::vector<cd>freqs(N,0);
     for (size_t k = 0; k < N / 2; ++k)
     {
-        cd t = (cd(cos(-2 * PI * double(k) / N) , sin( -2 * PI * double(k) / N))) * odd[k];
-        fftArray[k] = even[k] + t;
-        fftArray[k + N / 2] = even[k] - t;
+        cd t = (cd(cos(-2 * PI * double(k) / N), sin(-2 * PI * double(k) / N))) * Fodd[k];
+        freqs[k] = Feven[k] + t;
+        freqs[k + N / 2] = Feven[k] - t;
     }
+    return freqs;
 }
 
-
 std::vector<cd> DFT(std::vector<double> signal)
-{   
+{
     std::vector<cd> ftArray;
     int N = signal.size();
     for (int k = 0; k < N; k++)
@@ -61,43 +66,49 @@ std::vector<cd> DFT(std::vector<double> signal)
         }
         // std::cout<<imags<<std::endl;
         cd sum;
-        sum = (reals, imags);
+        sum = cd(reals, imags);
         ftArray.push_back(sum);
     }
     return ftArray;
 }
 
-int main()
-{
-    std::vector<double> signal;
-    std::ifstream inFile;
-    inFile.open("wave.txt");
-    if (!inFile)
-    {
-        std::cout << "Unable to open the file";
-        exit(1);
-    }
-    double data;
-    while (inFile >> data)
-    {
-        signal.push_back(data);
-    }
-    std::vector<cd> vfft;
-    std::vector<cd> vdft;
-    for(int i=0; i<signal.size(); i++)
-    {
-        cd var = signal[i];
-        vfft.push_back(var);
-    }
+// int main()
+// {
+//     std::vector<double> signal;
+//     std::ifstream inFile;
+//     inFile.open("wave.txt");
+//     if (!inFile)
+//     {
+//         std::cout << "Unable to open the file";
+//         exit(1);
+//     }
+//     double dat;
+//     while (inFile >> dat)
+//     {
+//         double data = dat;
+//         signal.push_back(data);
+//     }
+//     std::vector<cd> vfft;
+//     std::vector<cd> vdft;
+//     for (int i = 0; i < signal.size(); i++)
+//     {
+//         cd var = signal[i];
+//         vfft.push_back(var);
+//     }
 
-    vdft = DFT(signal);
-    FFT(vfft);
+//     vdft = DFT(signal);
+//     FFT(vfft);
 
-   
-    std::cout << "fft" << std::endl;
-    for (int i = 0; i < 8; ++i)
-    {
-        std::cout<<std::setprecision(9) << signal[i] << std::endl;
-    }
-    std::cout<<signal.size()<<std::endl;
+//     std::cout << "fft" << std::endl;
+//     for (int i = 0; i < 8; ++i)
+//     {
+//         std::cout << std::setprecision(9) << signal[i] << std::endl;
+//     }
+//     std::cout << signal.size() << std::endl;
+// }
+
+PYBIND11_MODULE(fourier, m) {
+    // m.doc() = "pybind11 example plugin"; // optional module docstring
+    m.def("DFT", &DFT, "Fourier transform");
+    m.def("FFT", &FFT, "Fast fourier transform");
 }
